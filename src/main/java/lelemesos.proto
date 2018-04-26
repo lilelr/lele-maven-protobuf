@@ -1,0 +1,170 @@
+syntax = "proto2";
+
+package mesos;
+
+option java_package = "org.lele.mesos";
+option java_outer_classname = "Protos";
+
+
+/**
+ * Status is used to indicate the state of the scheduler and executor
+ * driver after function calls.
+ */
+enum Status {
+  DRIVER_NOT_STARTED = 1;
+  DRIVER_RUNNING = 2;
+  DRIVER_ABORTED = 3;
+  DRIVER_STOPPED = 4;
+}
+
+
+/**
+ * A unique ID assigned to a framework. A framework can reuse this ID
+ * in order to do failover (see MesosSchedulerDriver).
+ */
+message FrameworkID {
+  required string value = 1;
+}
+
+
+/**
+ * A framework-generated ID to distinguish an executor. Only one
+ * executor with the same ID can be active on the same slave at a
+ * time. However, reusing executor IDs is discouraged.
+ */
+message ExecutorID {
+    required string value = 1;
+}
+
+/**
+ * A unique ID assigned to an offer.
+ */
+message OfferID {
+  required string value = 1;
+}
+
+
+/**
+ * A unique ID assigned to a slave. Currently, a slave gets a new ID
+ * whenever it (re)registers with Mesos. Framework writers shouldn't
+ * assume any binding between a slave ID and and a hostname.
+ */
+message SlaveID {
+  required string value = 1;
+}
+/**
+ * A network address.
+ *
+ * TODO(bmahler): Use this more widely.
+ */
+message Address {
+    // May contain a hostname, IP address, or both.
+    optional string hostname = 1;
+    optional string ip = 2;
+
+    required int32 port = 3;
+}
+
+/**
+ * A generic (key, value) pair used in various places for parameters.
+ */
+message Parameter {
+    required string key = 1;
+    required string value = 2;
+}
+
+
+/**
+ * Represents a URL.
+ */
+message URL {
+    required string scheme = 1;
+    required Address address = 2;
+    optional string path = 3;
+    repeated Parameter query = 4;
+    optional string fragment = 5;
+}
+
+
+/**
+ * Describes an Attribute or Resource "value". A value is described
+ * using the standard protocol buffer "union" trick.
+ */
+message Value {
+    enum Type {
+        SCALAR = 0;
+        RANGES = 1;
+        SET = 2;
+        TEXT = 3;
+    }
+
+    message Scalar {
+        // Scalar values are represented using floating point. To reduce
+        // the chance of unpredictable floating point behavior due to
+        // roundoff error, Mesos only supports three decimal digits of
+        // precision for scalar resource values. That is, floating point
+        // values are converted to a fixed point format that supports
+        // three decimal digits of precision, and then converted back to
+        // floating point on output. Any additional precision in scalar
+        // resource values is discarded (via rounding).
+        required double value = 1;
+    }
+
+    message Range {
+        required uint64 begin = 1;
+        required uint64 end = 2;
+    }
+
+    message Ranges {
+        repeated Range range = 1;
+    }
+
+    message Set {
+        repeated string item = 1;
+    }
+
+    message Text {
+        required string value = 1;
+    }
+
+    required Type type = 1;
+    optional Scalar scalar = 2;
+    optional Ranges ranges = 3;
+    optional Set set = 4;
+    optional Text text = 5;
+}
+
+/**
+ * Describes an attribute that can be set on a machine. For now,
+ * attributes and resources share the same "value" type, but this may
+ * change in the future and attributes may only be string based.
+ */
+message Attribute {
+    required string name = 1;
+    required Value.Type type = 2;
+    optional Value.Scalar scalar = 3;
+    optional Value.Ranges ranges = 4;
+    optional Value.Set set = 6;
+    optional Value.Text text = 5;
+}
+
+
+/**
+ * Describes some resources available on a slave. An offer only
+ * contains resources from a single slave.
+ */
+message Offer {
+  required OfferID id = 1;
+  required FrameworkID framework_id = 2;
+  required SlaveID slave_id = 3;
+  required string hostname = 4;
+
+  // URL for reaching the slave running on the host.
+  optional URL url = 8;
+
+//  repeated Resource resources = 5;
+  repeated Attribute attributes = 7;
+  repeated ExecutorID executor_ids = 6;
+
+
+}
